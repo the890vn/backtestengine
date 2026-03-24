@@ -1,0 +1,83 @@
+
+Ở frontend UI:
+1. User sẽ chọn và cấu hình các indicator trước (name của indicator instance sẽ được tạo từ đây)
+2. Sau đó user xuống section Strategy, thao tác add các khung timeframe họ muốn.
+3. Trong mỗi khung timeframe, sẽ có 3 dropdown menu đại diện cho subject, operator, reference.
+4. User có thể ấn vào dropdown menu và chọn các indicator đã được cấu hình ở trên.
+5. Sau khi đã cấu hình xong mọi thứ, user ấn Run Backtest.
+6. UI sẽ gửi 1 file run_config.json đã được build trong lúc user thao tác trước đó về cho backend.
+7. Backend sẽ gọi Core và đưa run_config cho Orchestrator để parse và truyền các config cho các Engine.
+8. Mỗi 1 mục trong run_config sẽ tương ứng với 1 engine phụ trách. Ví dụ: "indicators" sẽ tương ứng với IndicatorEngine, "strategy" sẽ tương ứng với StrategyEngine.
+
+{
+  "indicators": [
+    {
+      "id": "EMA",
+      "input": "close",
+      "params": { "period": 50 },
+      "timeframe": "M5"
+    },
+    {
+      "id": "EMA",
+      "input": "high",
+      "params": { "period": 20 },
+      "timeframe": "M5"
+    },
+    {
+      "id": "RSI",
+      "input": "close",
+      "params": { "period": 14 },
+      "timeframe": "M5"
+    },
+    {
+      "id": "EMA",
+      "input": "low",
+      "params": { "period": 200 },
+      "timeframe": "H1"
+    }
+  ],
+
+  "strategy": {
+    "entry_condition": {
+      "M5": [
+        {
+          "subject":   { "type": "indicator", "name": "ema_high_20_M5", "output": "value" },
+          "operator":  "cross_above",
+          "reference": { "type": "indicator", "name": "ema_close_50_M5", "output": "value" }
+        },
+        {
+          "subject":   { "type": "indicator", "name": "rsi_close_14_M5", "output": "value" },
+          "operator":  ">",
+          "reference": { "type": "constant", "value": 30.0 }
+        }
+      ],
+      "H1": [
+        {
+          "subject":   { "type": "indicator", "name": "ema_low_200_H1", "output": "value" },
+          "operator":  ">",
+          "reference": { "type": "price", "field": "close" }
+        }
+      ]
+    },
+
+    "exit_condition": {
+      "M15": [
+        {
+          "subject":   { "type": "indicator", "name": "ema_close_50_M15", "output": "value" },
+          "operator":  "cross_above",
+          "reference": { "type": "indicator", "name": "ema_high_20_M15", "output": "value" }
+        }
+      ]
+    },
+
+    "exit_condition_optional": {
+      "M1": [
+        {
+          "subject":   { "type": "position", "field": "hold_duration" },
+          "operator":  ">",
+          "reference": { "type": "constant", "value": 10.0 }
+        }
+      ]
+    }
+  }
+}
